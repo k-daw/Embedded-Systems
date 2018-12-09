@@ -2,9 +2,9 @@
 
 #define TasksNumber 10
 #define IDLE 0
-#define READY 1 
-#define DELAYED 2
-#define RUNNING 3
+#define READY 3 
+#define DELAYED 5 
+
 
 char TaskQueueHead;
 char TaskQueueTail;
@@ -20,16 +20,18 @@ struct task{
 };
 
 struct task TASKS[TasksNumber+1];
-struct task NewTask;
 
-char QueTask(){
+
+char QueTask(void (*task_function_pointer)()){
     char index = 0;
     do
     { 
         index++;  // increment the counter
         if (TASKS[index].status == IDLE)  // Adding the New Task to the tail of the Queue //
         {
-            TASKS[index] = NewTask;
+            TASKS[index].tpntr = task_function_pointer;
+            TASKS[index].status = READY;
+            TASKS[index].index = 0;
             TASKS[TaskQueueTail].next = index;
             TaskQueueTail = index;
         }
@@ -39,7 +41,7 @@ char QueTask(){
     return index==TasksNumber? 0:1;  // Return 0 if insertions is not successful 
 }
 
-void QueDelay(struct task NewTask, char delay){
+void QueDelay(void (*task_function_pointer)(), char delay){
     
     char current_position = DelayQueueHead;
     delay -= TASKS[current_position].delay;
@@ -51,7 +53,7 @@ void QueDelay(struct task NewTask, char delay){
         else
         {   
             NewTask.next = TASKS[current_position].next;
-            TASKS[current_position].next = NewTask
+            TASKS[current_position].next = NewTask;
         }
 
     }
