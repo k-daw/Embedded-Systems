@@ -6,10 +6,10 @@
 #define DELAYED 5 
 
 
-char TaskQueueHead;
-char TaskQueueTail;
-char DelayQueueHead;
-char DelayQueueTail;
+char TaskQueueHead = 1;
+char TaskQueueTail = 1;
+char DelayQueueHead = 1;
+char DelayQueueTail = 1;
 
 
 struct task{
@@ -29,6 +29,7 @@ char AddNewTask(void (*task_function_pointer)()){
         index++;  // increment the counter
         if (TASKS[index].status == IDLE)  // Adding the New Task to the tail of the Queue //
         {
+            printf("%d", index);
             TASKS[index].tpntr = task_function_pointer;
             TASKS[index].status = READY;
             return index;   
@@ -39,13 +40,23 @@ char AddNewTask(void (*task_function_pointer)()){
     return 0;
 }
 
+
+void RunTask(){
+
+    (*TASKS[TaskQueueHead].tpntr)();  // Execute the first task in the Queue
+    TASKS[TaskQueueHead].status = IDLE;  // Make it an idle task
+}
+
 char QueTask(void (*task_function_pointer)()){
     char index = AddNewTask(task_function_pointer);
     if(index)
     {
         TASKS[TaskQueueTail].next = index;
         TaskQueueTail = index;
+        RunTask();
+        return 1;
     }
+    return 0;
 }
 
 void QueDelay(void (*task_function_pointer)(), char delay){
@@ -72,7 +83,6 @@ void QueDelay(void (*task_function_pointer)(), char delay){
 
 }
 
-
 void ReRunMe(char delay){
     if(delay == 0) QueTask(TASKS[TaskQueueHead].tpntr);  // No Delay so put it in the ReadyQueue
     else QueDelay(TASKS[TaskQueueHead].tpntr, delay);  // Add to Delay Queue // 
@@ -90,11 +100,6 @@ void DecrementDelay(){
     }
 }
 
-void RunTask()
-{
-    (*TASKS[TaskQueueHead].tpntr)();  // Execute the first task in the Queue
-    TASKS[TaskQueueHead].status = IDLE;  // Make it an idle task
-}
 
 void Dispatch(){
     
@@ -105,8 +110,20 @@ void Dispatch(){
 void DisableIRQ();
 void EnableIRQ();
 
+void test(void){
+    char msg[] = "Success";
+    printf("%s", msg);
+}
 int main(){
     char c =  (char) 66;
-
+    //void (*fun_ptr)(int) = &test; 
+    char z[] = "I am learning C programming language.";
+    char * x = z; 
+    void (* fptr)();
+    fptr =  test;
+    (*fptr)();
+    printf("%d", QueTask(test)); // %s is format specifier
+    
+    //Dispatch();
     printf("%d\n",c+3);
 }
