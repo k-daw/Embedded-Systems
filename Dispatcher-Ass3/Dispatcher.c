@@ -22,7 +22,7 @@ struct task{
 struct task TASKS[TasksNumber+1];
 
 
-char QueTask(void (*task_function_pointer)()){
+char AddNewTask(void (*task_function_pointer)()){
     char index = 0;
     do
     { 
@@ -31,46 +31,63 @@ char QueTask(void (*task_function_pointer)()){
         {
             TASKS[index].tpntr = task_function_pointer;
             TASKS[index].status = READY;
-            TASKS[index].index = 0;
-            TASKS[TaskQueueTail].next = index;
-            TaskQueueTail = index;
+            return index;   
         }
 
     } while(index<=TasksNumber);
 
-    return index==TasksNumber? 0:1;  // Return 0 if insertions is not successful 
+    return 0;
+}
+
+char QueTask(void (*task_function_pointer)()){
+    char index = AddNewTask(task_function_pointer);
+    if(index)
+    {
+        TASKS[TaskQueueTail].next = index;
+        TaskQueueTail = index;
+    }
 }
 
 void QueDelay(void (*task_function_pointer)(), char delay){
     
-    char current_position = DelayQueueHead;
-    delay -= TASKS[current_position].delay;
-    while(delay > 0){
-        if (delay - TASKS[current_position].delay > 0 ){
-            current_position = TASKS[current_position].next;
-            delay -= TASKS[current_position].next;
-        }
-        else
-        {   
-            NewTask.next = TASKS[current_position].next;
-            TASKS[current_position].next = NewTask;
-        }
+    char index = AddNewTask(task_function_pointer);
 
+    if(index)
+    {
+        char current_position = DelayQueueHead;    
+        do
+        {
+            if (delay - TASKS[current_position].delay > 0){
+                current_position = TASKS[current_position].next;
+                delay -= TASKS[current_position].delay;
+            }
+            else
+            {   
+                TASKS[index].next = TASKS[current_position].next;
+                TASKS[current_position].next = index;
+                TASKS[current_position].delay -= delay;
+            }
+        } while(delay > 0);
     }
 
-    }
 }
 
-void ReRunMe(char delay = 0){
-    
-    NewTask = TASKS[TaskQueueHead];  // Create New Task
-    
-    if(delay == 0) QueTask();  // No Delay so put it in the ReadyQueue
-    else QueDelay(delay);  // Add to Delay Queue // 
+
+void ReRunMe(char delay){
+    if(delay == 0) QueTask(TASKS[TaskQueueHead].tpntr);  // No Delay so put it in the ReadyQueue
+    else QueDelay(TASKS[TaskQueueHead].tpntr, delay);  // Add to Delay Queue // 
 }
 
 void DecrementDelay(){
-    
+    TASKS[DelayQueueHead].delay -= 1;  // Decrement the delay by one 
+    if(!TASKS[DelayQueueHead].delay)  // Head of Delay is zero 
+    {
+        TASKS[TaskQueueTail].next = DelayQueueHead;
+        TaskQueueTail = DelayQueueHead;
+        TASKS[TaskQueueTail].status = READY;
+        TASKS[TaskQueueTail].next = 0;
+        DelayQueueHead = TASKS[DelayQueueHead].next;  //  Let the next position in the delay queue as head
+    }
 }
 
 void RunTask()
