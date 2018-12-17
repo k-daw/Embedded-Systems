@@ -2,6 +2,7 @@
     "files.associations": {
         "queue": "c",
         "memory": "c",
-        "utility": "c"
+        "utility": "c",
+        "bitset": "c"
     }
 }

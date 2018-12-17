@@ -16,10 +16,9 @@ struct task{
     char delay;
     char status;
     char next;
-    void (*tpntr)();
-};
+    void (*tpntr)();  // we can add an optimzation here, by saving the initial pointer of the program, and saving only the offset of the program
+} TASKS[TasksNumber+1];
 
-struct task TASKS[TasksNumber+1];
 
 
 char AddNewTask(void (*task_function_pointer)()){
@@ -53,7 +52,6 @@ char QueTask(void (*task_function_pointer)()){
     {
         TASKS[TaskQueueTail].next = index;
         TaskQueueTail = index;
-        RunTask();
         return 1;
     }
     return 0;
@@ -102,7 +100,6 @@ void DecrementDelay(){
 
 
 void Dispatch(){
-    
     RunTask();
     TaskQueueHead = TASKS[TaskQueueHead].next;  // Make the Next Task as the Queue Head
 }
@@ -114,16 +111,14 @@ void test(void){
     char msg[] = "Success";
     printf("%s", msg);
 }
+
 int main(){
     char c =  (char) 66;
-    //void (*fun_ptr)(int) = &test; 
     char z[] = "I am learning C programming language.";
     char * x = z; 
     void (* fptr)();
     fptr =  test;
-    (*fptr)();
-    printf("%d", QueTask(test)); // %s is format specifier
-    
-    //Dispatch();
+    QueTask(fptr);
+    Dispatch();
     printf("%d\n",c+3);
 }
