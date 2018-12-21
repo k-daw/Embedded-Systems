@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+
+
 #define TasksNumber 10
 #define IDLE 0
 #define READY 3 
@@ -8,8 +10,8 @@
 
 char TaskQueueHead = 1;
 char TaskQueueTail = 1;
-char DelayQueueHead = 1;
-char DelayQueueTail = 1;
+char DelayQueueHead = 0;
+char DelayQueueTail = 0;
 
 
 struct task{
@@ -21,6 +23,7 @@ struct task{
 
 
 
+
 char AddNewTask(void (*task_function_pointer)()){
     char index = 0;
     do
@@ -28,7 +31,6 @@ char AddNewTask(void (*task_function_pointer)()){
         index++;  // increment the counter
         if (TASKS[index].status == IDLE)  // Adding the New Task to the tail of the Queue //
         {
-            printf("%d", index);
             TASKS[index].tpntr = task_function_pointer;
             TASKS[index].status = READY;
             return index;   
@@ -41,9 +43,11 @@ char AddNewTask(void (*task_function_pointer)()){
 
 
 void RunTask(){
-
-    (*TASKS[TaskQueueHead].tpntr)();  // Execute the first task in the Queue
-    TASKS[TaskQueueHead].status = IDLE;  // Make it an idle task
+		if(TaskQueueHead)
+    {
+			(*TASKS[TaskQueueHead].tpntr)();  // Execute the first task in the Queue
+			TASKS[TaskQueueHead].status = IDLE;  // Make it an idle task
+		}
 }
 
 char QueTask(void (*task_function_pointer)()){
@@ -52,33 +56,58 @@ char QueTask(void (*task_function_pointer)()){
     {
         TASKS[TaskQueueTail].next = index;
         TaskQueueTail = index;
+				TASKS[index].next = 0;
         return 1;
     }
     return 0;
 }
 
-void QueDelay(void (*task_function_pointer)(), char delay){
-    
+void QueDelay(void (*task_function_pointer)(), char delay_of_task){
+    char delay = delay_of_task;
     char index = AddNewTask(task_function_pointer);
-
+		
     if(index)
     {
-        char current_position = DelayQueueHead;    
-        do
-        {
-            if (delay - TASKS[current_position].delay > 0){
-                current_position = TASKS[current_position].next;
-                delay -= TASKS[current_position].delay;
-            }
-            else
-            {   
-                TASKS[index].next = TASKS[current_position].next;
-                TASKS[current_position].next = index;
-                TASKS[current_position].delay -= delay;
-            }
-        } while(delay > 0);
-    }
-
+			if(!DelayQueueHead){  // The Delay Queue is empty
+				
+				DelayQueueHead = index;
+				DelayQueueTail = index;
+				TASKS[index].status = DELAYED;
+				TASKS[index].next = 0;
+				TASKS[index].tpntr = task_function_pointer;
+				TASKS[index].delay = delay_of_task;
+			}
+			else{
+				char current_position = DelayQueueHead; 
+				do
+				{
+						if (delay - TASKS[current_position].delay > 0){
+							
+								if (!TASKS[current_position].next){  //  we reached the end of the DelayQueue
+									
+									DelayQueueTail = index;
+									TASKS[current_position].next = index;
+									TASKS[index].status = DELAYED;
+									TASKS[index].next = 0;
+									TASKS[index].tpntr = task_function_pointer;
+									TASKS[index].delay = delay - TASKS[current_position].delay;
+									return;
+								}
+						}
+						else
+						{   
+							TASKS[index].next = TASKS[current_position].next;
+							TASKS[current_position].next = index;
+							TASKS[current_position].delay = delay;
+							break;
+						}
+					delay -= TASKS[current_position].delay;
+					current_position = TASKS[current_position].next ;
+					
+						
+				} while(delay_of_task >= delay);
+			}
+		}
 }
 
 void ReRunMe(char delay){
@@ -87,38 +116,25 @@ void ReRunMe(char delay){
 }
 
 void DecrementDelay(){
-    TASKS[DelayQueueHead].delay -= 1;  // Decrement the delay by one 
-    if(!TASKS[DelayQueueHead].delay)  // Head of Delay is zero 
-    {
-        TASKS[TaskQueueTail].next = DelayQueueHead;
-        TaskQueueTail = DelayQueueHead;
-        TASKS[TaskQueueTail].status = READY;
-        TASKS[TaskQueueTail].next = 0;
-        DelayQueueHead = TASKS[DelayQueueHead].next;  //  Let the next position in the delay queue as head
-    }
+		if (TASKS[DelayQueueHead].status == DELAYED){
+			TASKS[DelayQueueHead].delay -= 1;  // Decrement the delay by one 
+			if(!TASKS[DelayQueueHead].delay)  // Head of Delay is zero 
+			{
+				if(TaskQueueHead) TASKS[TaskQueueTail].next = DelayQueueHead;
+				else TaskQueueHead = DelayQueueHead;
+	
+				TaskQueueTail = DelayQueueHead;
+				DelayQueueHead = TASKS[DelayQueueHead].next;
+				TASKS[TaskQueueTail].status = READY;
+				  //  Let the next position in the delay queue as head
+				TASKS[TaskQueueTail].next = 0;
+				
+			}
+		}
 }
 
 
 void Dispatch(){
     RunTask();
     TaskQueueHead = TASKS[TaskQueueHead].next;  // Make the Next Task as the Queue Head
-}
-
-void DisableIRQ();
-void EnableIRQ();
-
-void test(void){
-    char msg[] = "Success";
-    printf("%s", msg);
-}
-
-int main(){
-    char c =  (char) 66;
-    char z[] = "I am learning C programming language.";
-    char * x = z; 
-    void (* fptr)();
-    fptr =  test;
-    QueTask(fptr);
-    Dispatch();
-    printf("%d\n",c+3);
 }
